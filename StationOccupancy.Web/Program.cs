@@ -1,6 +1,7 @@
 using MediatR;
 
 using Microsoft.EntityFrameworkCore;
+using StationOccupancy.Web.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -11,20 +12,21 @@ builder.Services.AddControllersWithViews();
 builder.Services.AddMediatR(typeof(StationOccupancy.Web.Features.Stations.Commands.CreateStation.CreateStationCommand));
 
 // Persistence (EF Core Sqlite)
-builder.Services.AddDbContext<StationOccupancy.Web.Infrastructure.Persistence.StationOccupancyDbContext>(options =>
+builder.Services.AddDbContext<StationOccupancyDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
-builder.Services.AddScoped<StationOccupancy.Web.Infrastructure.Persistence.EfStationRepository>();
-builder.Services.AddScoped<StationOccupancy.Web.Infrastructure.Persistence.IStationReadRepository>(sp =>
-    sp.GetRequiredService<StationOccupancy.Web.Infrastructure.Persistence.EfStationRepository>());
-builder.Services.AddScoped<StationOccupancy.Web.Infrastructure.Persistence.IStationWriteRepository>(sp =>
-    sp.GetRequiredService<StationOccupancy.Web.Infrastructure.Persistence.EfStationRepository>());
+
+builder.Services.AddScoped<EfStationRepository>();
+
+builder.Services.AddScoped<IStationReadRepository>(sp =>sp.GetRequiredService<EfStationRepository>());
+
+builder.Services.AddScoped<IStationWriteRepository>(sp =>sp.GetRequiredService<EfStationRepository>());
 
 var app = builder.Build();
 
 // Ensure DB exists (bootstrap)
 using (var scope = app.Services.CreateScope())
 {
-    var db = scope.ServiceProvider.GetRequiredService<StationOccupancy.Web.Infrastructure.Persistence.StationOccupancyDbContext>();
+    var db = scope.ServiceProvider.GetRequiredService<StationOccupancyDbContext>();
     db.Database.EnsureCreated();
 }
 
